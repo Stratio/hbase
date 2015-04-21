@@ -400,4 +400,27 @@ object HBaseCatalog {
   private final val MetaData = "metadata"
   private final val ColumnFamily = Bytes.toBytes("colfam")
   private final val QualData = Bytes.toBytes("data")
+
+  def getDataType(dataType: String): DataType = {
+    if (dataType.equalsIgnoreCase(StringType.typeName)) {
+      StringType
+    } else if (dataType.equalsIgnoreCase(ByteType.typeName)) {
+      ByteType
+    } else if (dataType.equalsIgnoreCase(ShortType.typeName)) {
+      ShortType
+    } else if (dataType.equalsIgnoreCase(IntegerType.typeName) ||
+      dataType.equalsIgnoreCase("int")) {
+      IntegerType
+    } else if (dataType.equalsIgnoreCase(LongType.typeName)) {
+      LongType
+    } else if (dataType.equalsIgnoreCase(FloatType.typeName)) {
+      FloatType
+    } else if (dataType.equalsIgnoreCase(DoubleType.typeName)) {
+      DoubleType
+    } else if (dataType.equalsIgnoreCase(BooleanType.typeName)) {
+      BooleanType
+    } else {
+      throw new IllegalArgumentException(s"Unrecognized data type: $dataType")
+    }
+  }
 }

@@ -44,7 +44,6 @@ class HBaseSource extends RelationProvider {
   override def createRelation(
                                sqlContext: SQLContext,
                                parameters: Map[String, String]): BaseRelation = {
-    val catalog = sqlContext.catalog.asInstanceOf[HBaseCatalog]
 
     val tableName = parameters("tableName")
     val rawNamespace = parameters("namespace")
@@ -64,19 +63,22 @@ class HBaseSource extends RelationProvider {
         if (keyMap.contains(name)) {
           KeyColumn(
             name,
-            catalog.getDataType(keyMap.get(name).get),
+            HBaseCatalog.getDataType(keyMap.get(name).get),
             keyCols.indexWhere(_._1 == name))
         } else {
           val nonKeyCol = nonKeyCols.find(_._1 == name).get
           NonKeyColumn(
             name,
-            catalog.getDataType(nonKeyCol._2),
+            HBaseCatalog.getDataType(nonKeyCol._2),
             nonKeyCol._3,
             nonKeyCol._4
           )
         }
     }
-    catalog.createTable(tableName, rawNamespace, hbaseTable, allColumns, null)
+    val hbaseRelation = HBaseRelation(tableName, rawNamespace, hbaseTable,
+      allColumns)(sqlContext)
+    hbaseRelation.setConfig(sqlContext.sparkContext.hadoopConfiguration)
+    hbaseRelation
   }
 }
 
@@ -196,7 +198,7 @@ private[hbase] case class HBaseRelation(
    * partitions are updated per table lookup to keep the info reasonably updated
    */
   @transient lazy val partitionExpiration =
-    context.conf.asInstanceOf[HBaseSQLConf].partitionExpiration * 1000
+    context.conf.getConf(HBaseSQLConf.PARTITION_EXPIRATION, "600").toLong * 1000
   @transient var partitionTS: Long = _
 
   private[hbase] def fetchPartitions(): Unit = {
@@ -236,7 +238,7 @@ private[hbase] case class HBaseRelation(
 
   @transient private[hbase] lazy val dimSize = keyColumns.size
 
-  val scannerFetchSize = context.conf.asInstanceOf[HBaseSQLConf].scannerFetchSize
+  val scannerFetchSize = context.conf.getConf(HBaseSQLConf.SCANNER_FETCH_SIZE, "1000").toInt
 
   private[hbase] def generateRange(partition: HBasePartition, pred: Expression,
                                    index: Int): PartitionRange[_] = {
