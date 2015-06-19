@@ -20,11 +20,13 @@ package org.apache.spark.sql.hbase
 import java.io.File
 
 import org.apache.spark.SparkContext
-import org.apache.spark.sql.Row
+import org.apache.spark.sql.execution.Exchange
+import org.apache.spark.sql.{DataFrame, SQLConf, Row}
+import org.apache.spark.sql.catalyst.expressions.GenericRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.hbase.execution._
-import org.apache.spark.sql.hbase.util.BytesUtils
-import org.apache.spark.sql.types.IntegerType
+import org.apache.spark.sql.hbase.util.{HBaseKVHelper, BytesUtils}
+import org.apache.spark.sql.types._
 
 class BulkLoadIntoTableSuite extends HBaseTestData {
   val sc: SparkContext = TestHbase.sparkContext
@@ -218,7 +220,7 @@ class BulkLoadIntoTableSuite extends HBaseTestData {
       Row("row1", null, "8", "101") ::
         Row("row2", "2", null, "102") ::
         Row("row3", "3", "10", null) ::
-        Row("row4", null, null, null):: Nil)
+        Row("row4", null, null, null) :: Nil)
 
     // cleanup
     TestHbase.sql(drop)
@@ -270,7 +272,7 @@ class BulkLoadIntoTableSuite extends HBaseTestData {
       Row("row1", null, "8", "101") ::
         Row("row2", "2", null, "102") ::
         Row("row3", "3", "10", null) ::
-        Row("row4", null, null, null):: Nil)
+        Row("row4", null, null, null) :: Nil)
 
     // cleanup
     TestHbase.sql(drop)
@@ -419,5 +421,100 @@ class BulkLoadIntoTableSuite extends HBaseTestData {
     // cleanup
     TestHbase.sql("drop table testblk")
     dropNativeHbaseTable("presplit_table")
+  }
+
+  test("group test for presplit table") {
+    aggregationTest()
+  }
+
+  test("group test for presplit table with codegen") {
+    val originalValue = TestHbase.conf.codegenEnabled
+    TestHbase.setConf(SQLConf.CODEGEN_ENABLED, "true")
+
+    aggregationTest()
+
+    TestHbase.setConf(SQLConf.CODEGEN_ENABLED, originalValue.toString)
+  }
+
+  def aggregationTest() = {
+    val types = Seq(IntegerType, StringType, IntegerType)
+
+    def generateRowKey(keys: Array[Any], length: Int = -1) = {
+      val completeRowKey = HBaseKVHelper.makeRowKey(new GenericRow(keys), types)
+      if (length < 0) completeRowKey
+      else completeRowKey.take(length)
+    }
+
+    val splitKeys: Array[HBaseRawType] = Array(
+      generateRowKey(Array(1024, "0b", 0), 3),
+      generateRowKey(Array(2048, "cc", 1024), 4),
+      generateRowKey(Array(4096, "0a", 0), 4) ++ Array[Byte](0x00),
+      generateRowKey(Array(4096, "0b", 1024), 7),
+      generateRowKey(Array(4096, "cc", 0), 7) ++ Array[Byte](0x00),
+      generateRowKey(Array(4096, "cc", 1000))
+    )
+    createNativeHbaseTable("presplit_table", Seq("cf"), splitKeys)
+
+    val sql1 =
+      s"""CREATE TABLE testblk(col1 INT, col2 STRING, col3 INT, col4 STRING,
+          PRIMARY KEY(col1, col2, col3))
+          MAPPED BY (presplit_table, COLS=[col4=cf.a])"""
+        .stripMargin
+
+    val executeSql1 = TestHbase.executeSql(sql1)
+    executeSql1.toRdd.collect()
+
+    val inputFile = "'" + hbaseHome + "/splitLoadData1.txt'"
+
+    // then load parall data into table
+    val loadSql = "LOAD PARALL DATA LOCAL INPATH " + inputFile + " INTO TABLE testblk"
+
+    val executeSql3 = TestHbase.executeSql(loadSql)
+    executeSql3.toRdd.collect()
+
+    var sql = "select col1,col3 from testblk where col1 < 4096 group by col3,col1"
+    checkResult(TestHbase.sql(sql), containExchange = true, 3)
+
+    sql = "select col1,col2,col3 from testblk group by col1,col2,col3"
+    checkResult(TestHbase.sql(sql), containExchange = false, 7)
+
+    sql = "select col1,col2,col3,count(*) from testblk group by col1,col2,col3,col1+col3"
+    checkResult(TestHbase.sql(sql), containExchange = false, 7) //Sprecial case
+
+    sql = "select count(*) from testblk group by col1+col3"
+    checkResult(TestHbase.sql(sql), containExchange = true, 5)
+
+    sql = "select col1,col2 from testblk where col1 < 4096 group by col1,col2"
+    checkResult(TestHbase.sql(sql), containExchange = false, 3)
+
+    sql = "select col1,col2 from testblk where (col1 = 4096 and col2 < 'cc') group by col1,col2"
+    checkResult(TestHbase.sql(sql), containExchange = true, 2)
+
+    sql = "select col1 from testblk where col1 < 4096 group by col1"
+    checkResult(TestHbase.sql(sql), containExchange = false, 3)
+
+    val result = runSql("select avg(col3) from testblk where col1 < 4096 group by col1")
+    assert(result.size == 3)
+    val exparr = Array(Array(1024.0), Array(0.0), Array(1024.0))
+
+    val res = {
+      for (rx <- 0 until exparr.size)
+      yield compareWithTol(result(rx).toSeq, exparr(rx), s"Row$rx failed")
+    }.foldLeft(true) { case (res1, newres) => res1 && newres}
+    assert(res, "One or more rows did not match expected")
+
+    // cleanup
+    TestHbase.sql("drop table testblk")
+    dropNativeHbaseTable("presplit_table")
+  }
+  
+  def checkResult(df: DataFrame, containExchange:Boolean, size: Int) = {
+    df.queryExecution.executedPlan match {
+      case a:org.apache.spark.sql.execution.Aggregate => 
+        assert(a.child.isInstanceOf[Exchange] == containExchange)
+      case a:org.apache.spark.sql.execution.GeneratedAggregate => 
+        assert(a.child.isInstanceOf[Exchange] == containExchange)
+    }
+    assert(df.collect().size == size)
   }
 }

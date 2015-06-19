@@ -87,7 +87,7 @@ abstract class HBaseIntegrationTestBase
     checkAnswer(rdd, Seq(expectedAnswer))
   }
 
-  def runSql(sql: String) = {
+  def runSql(sql: String):Array[Row] = {
     logInfo(sql)
     TestHbase.sql(sql).collect()
   }

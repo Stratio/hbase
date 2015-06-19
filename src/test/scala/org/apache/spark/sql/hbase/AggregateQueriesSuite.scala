@@ -21,26 +21,26 @@ class AggregateQueriesSuite extends HBaseTestData {
   var testnm = "Group by with cols in select list and with order by"
   test("Group by with cols in select list and with order by") {
     val query =
-      s"""select count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecol, max(shortcol) shortcol,
+      s"""SELECT count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecol, max(shortcol) shortcol,
           max(floatcol) floatcolmax, max(doublecol) doublecol, max(longcol) from $DefaultTableName
-          where strcol like '%Row%' and shortcol < 12345 and doublecol > 5678912.345681
-          and doublecol < 5678912.345684
-          group by intcol, floatcol, strcol order by strcol desc"""
+          WHERE strcol LIKE '%Row%' AND shortcol < 12345 AND doublecol > 5678912.345681
+          AND doublecol < 5678912.345684
+          GROUP BY intcol, floatcol, strcol ORDER BY strcol DESC"""
 
     testGroupBy(testnm, query)
   }
 
   testnm = "Group by with cols in select list and with having and order by"
   test("Group by with cols in select list and with having and order by") {
-    val query = s"""select count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecolmax,
+    val query = s"""SELECT count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecolmax,
          max(shortcol) shortcolmax, max(floatcol) floatcolmax, max(doublecol) doublecolmax,
          max(longcol) longcolmax
-         from $DefaultTableName
-         where strcol like '%Row%' and shortcol < 12345 and doublecol > 5678912.345681
-         and doublecol < 5678912.345685
-         group by intcol, floatcol, strcol
-         having max(doublecol) < 5678912.345684
-         order by strcol desc""".stripMargin
+         FROM $DefaultTableName
+         WHERE strcol like '%Row%' AND shortcol < 12345 AND doublecol > 5678912.345681
+         AND doublecol < 5678912.345685
+         GROUP BY intcol, floatcol, strcol
+         HAVING max(doublecol) < 5678912.345684
+         ORDER BY strcol DESC""".stripMargin
     testGroupBy(testnm, query)
   }
 
@@ -66,11 +66,11 @@ class AggregateQueriesSuite extends HBaseTestData {
   testnm = "Another Group by with cols in select list and with having and order by"
   test("Another Group by with cols in select list and with having and order by") {
     val query1 =
-      s"""select count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecolmax, max(shortcol) shortcolmax,
-          max(floatcol) floatcolmax, max(doublecol) doublecolmax, max(longcol) longcolmax from $DefaultTableName
-          where strcol like '%Row%' and shortcol < 12345 and doublecol > 5678912.345681
-          and doublecol < 5678912.345685
-          group by intcol, floatcol, strcol having max(doublecol) < 5678912.345684 order by strcol desc"""
+      s"""SELECT count(1) as cnt, intcol, floatcol, strcol, max(bytecol) bytecolmax, max(shortcol) shortcolmax,
+          max(floatcol) floatcolmax, max(doublecol) doublecolmax, max(longcol) longcolmax FROM $DefaultTableName
+          WHERE strcol LIKE '%Row%' AND shortcol < 12345 AND doublecol > 5678912.345681
+          AND doublecol < 5678912.345685
+          GROUP BY intcol, floatcol, strcol HAVING max(doublecol) < 5678912.345684 ORDER BY strcol DESC"""
         .stripMargin
 
     val result1 = runSql(query1)

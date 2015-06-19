@@ -21,7 +21,7 @@ class BasicQueriesSuite extends HBaseTestData {
   var testnm = "StarOperator * with limit"
   test("StarOperator * with limit") {
     val query1 =
-      s"""select * from $DefaultTableName limit 3"""
+      s"""SELECT * FROM $DefaultTableName LIMIT 3"""
         .stripMargin
 
     val result1 = runSql(query1)
@@ -40,7 +40,7 @@ class BasicQueriesSuite extends HBaseTestData {
     logInfo(result1.mkString)
 
     val sql2 =
-      s"""select * from $DefaultTableName limit 2"""
+      s"""SELECT * FROM $DefaultTableName LIMIT 2"""
         .stripMargin
 
     val results = runSql(sql2)
@@ -59,7 +59,7 @@ class BasicQueriesSuite extends HBaseTestData {
   testnm = "Select all cols with filter"
   test("Select all cols with filter") {
     val query1 =
-      s"""select * from $DefaultTableName where shortcol < 12345 limit 2"""
+      s"""SELECT * FROM $DefaultTableName WHERE shortcol < 12345 LIMIT 2"""
         .stripMargin
 
     val result1 = runSql(query1)
@@ -82,7 +82,7 @@ class BasicQueriesSuite extends HBaseTestData {
   testnm = "Select all cols with order by"
   test("Select all cols with order by") {
     val query1 =
-      s"""select * from $DefaultTableName where shortcol < 12344 order by strcol desc limit 2"""
+      s"""SELECT * FROM $DefaultTableName WHERE shortcol < 12344 ORDER BY strcol DESC LIMIT 2"""
         .stripMargin
 
     val result1 = runSql(query1)
@@ -103,10 +103,10 @@ class BasicQueriesSuite extends HBaseTestData {
   testnm = "Select same column twice"
   test("Select same column twice") {
     val query1 =
-      s"""select doublecol as double1, doublecol as doublecol
-             | from $DefaultTableName
-     | where doublecol > 5678912.345681 and doublecol < 5678912.345683"""
-        .stripMargin
+      s"""SELECT doublecol AS double1, doublecol AS doublecol
+             | FROM $DefaultTableName
+             | WHERE doublecol > 5678912.345681 AND doublecol < 5678912.345683"""
+             .stripMargin
 
     val result1 = runSql(query1)
     logInfo(s"$query1 came back with ${result1.size} results")
@@ -128,11 +128,11 @@ class BasicQueriesSuite extends HBaseTestData {
   testnm = "Select specific cols with filter"
   test("Select specific cols with filter") {
     val query1 =
-      s"""select doublecol as double1, -1 * doublecol as minusdouble,
+      s"""SELECT doublecol AS double1, -1 * doublecol AS minusdouble,
          | substr(strcol, 2) as substrcol, doublecol, strcol,
-         | bytecol, shortcol, intcol, longcol, floatcol from $DefaultTableName where strcol like
-         |  '%Row%' and shortcol < 12345
-         |  and doublecol > 5678912.345681 and doublecol < 5678912.345683 limit 2"""
+         | bytecol, shortcol, intcol, longcol, floatcol FROM $DefaultTableName WHERE strcol LIKE
+         |  '%Row%' AND shortcol < 12345
+         |  AND doublecol > 5678912.345681 AND doublecol < 5678912.345683 LIMIT 2"""
         .stripMargin
 
     val result1 = runSql(query1)
@@ -155,18 +155,18 @@ class BasicQueriesSuite extends HBaseTestData {
 
   testnm = "Mixed And/or predicates"
   test("Mixed And/or predicates") {
-    val query1 = s"""select doublecol as double1, -1 * doublecol as minusdouble,
-     substr(strcol, 2) as substrcol, doublecol, strcol,
-     bytecol, shortcol, intcol, longcol, floatcol from $DefaultTableName
-     where strcol like '%Row%'
-     and shortcol < 12345
-      and doublecol > 5678912.345681 and doublecol < 5678912.345683
-       OR (doublecol = 5678912.345683 and strcol is not null)
-       OR (doublecol = 5678912.345683 and strcol is not null or intcol > 12345 AND intcol < 0)
-       OR (doublecol <> 5678912.345683 and (strcol is null or intcol > 12345 AND intcol < 0))
-       AND floatcol is not null
-       AND (intcol is not null and intcol > 0)
-       AND (intcol < 0 OR intcol is not null)""".stripMargin
+    val query1 = s"""SELECT doublecol AS double1, -1 * doublecol AS minusdouble,
+     substr(strcol, 2) AS substrcol, doublecol, strcol,
+     bytecol, shortcol, intcol, longcol, floatcol FROM $DefaultTableName
+     WHERE strcol LIKE '%Row%'
+       AND shortcol < 12345
+       AND doublecol > 5678912.345681 AND doublecol < 5678912.345683
+       OR (doublecol = 5678912.345683 AND strcol IS NOT NULL)
+       OR (doublecol = 5678912.345683 AND strcol IS NOT NULL or intcol > 12345 AND intcol < 0)
+       OR (doublecol <> 5678912.345683 AND (strcol IS NULL or intcol > 12345 AND intcol < 0))
+       AND floatcol IS NOT NULL
+       AND (intcol IS NOT NULL and intcol > 0)
+       AND (intcol < 0 OR intcol IS NOT NULL)""".stripMargin
 
     val result1 = runSql(query1)
     logInfo(s"$query1 came back with ${result1.size} results")
@@ -189,10 +189,10 @@ class BasicQueriesSuite extends HBaseTestData {
 
   testnm = "In predicates"
   test("In predicates") {
-    val query1 = s"""select doublecol as double1, -1 * doublecol as minusdouble,
-     substr(strcol, 2) as substrcol, doublecol, strcol,
-     bytecol, shortcol, intcol, longcol, floatcol from $DefaultTableName
-     where doublecol IN (doublecol + 5678912.345682 - doublecol, doublecol + 5678912.345683 - doublecol)""".stripMargin
+    val query1 = s"""SELECT doublecol AS double1, -1 * doublecol AS minusdouble,
+     substr(strcol, 2) AS substrcol, doublecol, strcol,
+     bytecol, shortcol, intcol, longcol, floatcol FROM $DefaultTableName
+     WHERE doublecol IN (doublecol + 5678912.345682 - doublecol, doublecol + 5678912.345683 - doublecol)""".stripMargin
 
     val result1 = runSql(query1)
     logInfo(s"$query1 came back with ${result1.size} results")
@@ -215,10 +215,10 @@ class BasicQueriesSuite extends HBaseTestData {
 
   testnm = "InSet predicates"
   test("InSet predicates") {
-    val query1 = s"""select doublecol as double1, -1 * doublecol as minusdouble,
-     substr(strcol, 2) as substrcol, doublecol, strcol,
-     bytecol, shortcol, intcol, longcol, floatcol from $DefaultTableName
-     where doublecol IN (5678912.345682, 5678912.345683)""".stripMargin
+    val query1 = s"""SELECT doublecol AS double1, -1 * doublecol AS minusdouble,
+     substr(strcol, 2) AS substrcol, doublecol, strcol,
+     bytecol, shortcol, intcol, longcol, floatcol FROM $DefaultTableName
+     WHERE doublecol IN (5678912.345682, 5678912.345683)""".stripMargin
 
     val result1 = runSql(query1)
     logInfo(s"$query1 came back with ${result1.size} results")

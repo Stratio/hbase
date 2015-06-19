@@ -144,13 +144,13 @@ class TpcMiniTestSuite extends HBaseIntegrationTestBase {
   }
 
   test("Query 0") {
-    val sql = "select count(1) from store_sales"
+    val sql = "SELECT count(1) FROM store_sales"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 100)
   }
 
   test("Query 1") {
-    val sql = "select ss_quantity, ss_wholesale_cost, ss_list_price from store_sales where ss_item_sk = 2744 and ss_ticket_number = 1"
+    val sql = "SELECT ss_quantity, ss_wholesale_cost, ss_list_price FROM store_sales WHERE ss_item_sk = 2744 AND ss_ticket_number = 1"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 37)
     assert(rows(0).get(1) == 63.63f)
@@ -158,7 +158,7 @@ class TpcMiniTestSuite extends HBaseIntegrationTestBase {
   }
 
   test("Query 2") {
-    val sql = "select ss_sold_date_sk, ss_sold_time_sk, ss_store_sk from store_sales where ss_item_sk = 2744 and ss_ticket_number = 1"
+    val sql = "SELECT ss_sold_date_sk, ss_sold_time_sk, ss_store_sk FROM store_sales WHERE ss_item_sk = 2744 AND ss_ticket_number = 1"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 2451813)
     assert(rows(0).get(1) == 65495)
@@ -166,7 +166,7 @@ class TpcMiniTestSuite extends HBaseIntegrationTestBase {
   }
 
   test("Query 3") {
-    val sql = "select ss_customer_sk, ss_promo_sk, ss_coupon_amt from store_sales where ss_item_sk = 2744 and ss_ticket_number = 1"
+    val sql = "SELECT ss_customer_sk, ss_promo_sk, ss_coupon_amt FROM store_sales WHERE ss_item_sk = 2744 AND ss_ticket_number = 1"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 225006)
     assert(rows(0).get(1) == 354)
@@ -174,91 +174,91 @@ class TpcMiniTestSuite extends HBaseIntegrationTestBase {
   }
 
   test("Query 4") {
-    val sql = "select ss_item_sk, count(1) from store_sales group by ss_item_sk"
+    val sql = "SELECT ss_item_sk, count(1) FROM store_sales GROUP BY ss_item_sk"
     val rows = runSql(sql)
     assert(rows.size == 100)
   }
 
   test("Query 5") {
-    val sql = "select ss_item_sk, ss_ticket_number, count(1) from store_sales where ss_item_sk > 4000 and ss_item_sk < 5000 group by ss_item_sk, ss_ticket_number"
+    val sql = "SELECT ss_item_sk, ss_ticket_number, count(1) FROM store_sales WHERE ss_item_sk > 4000 AND ss_item_sk < 5000 GROUP BY ss_item_sk, ss_ticket_number"
     val rows = runSql(sql)
     assert(rows.size == 5)
   }
 
   test("Query 6") {
-    val sql = "select ss_item_sk, avg(ss_quantity) as avg_qty, count(ss_quantity) as cnt_qty from store_sales where ss_item_sk = 2744 group by ss_item_sk"
+    val sql = "SELECT ss_item_sk, avg(ss_quantity) as avg_qty, count(ss_quantity) as cnt_qty FROM store_sales WHERE ss_item_sk = 2744 GROUP BY ss_item_sk"
     val rows = runSql(sql)
     assert(rows.size == 1)
   }
 
   test("Query 7") {
-    val sql = "select ss_item_sk, ss_ticket_number, sum(ss_wholesale_cost) as sum_wholesale_cost from store_sales where ss_item_sk > 4000 and ss_item_sk <= 5000 group by ss_item_sk, ss_ticket_number"
+    val sql = "SELECT ss_item_sk, ss_ticket_number, sum(ss_wholesale_cost) as sum_wholesale_cost FROM store_sales WHERE ss_item_sk > 4000 AND ss_item_sk <= 5000 GROUP BY ss_item_sk, ss_ticket_number"
     val rows = runSql(sql)
     assert(rows.size == 5)
   }
 
   test("Query 8") {
-    val sql = "select ss_item_sk, ss_ticket_number, min(ss_wholesale_cost) as min_wholesale_cost, max(ss_wholesale_cost) as max_wholesale_cost, avg(ss_wholesale_cost) as avg_wholesale_cost from store_sales where ss_item_sk > 4000 and ss_item_sk <= 5000 group by ss_item_sk, ss_ticket_number"
+    val sql = "SELECT ss_item_sk, ss_ticket_number, min(ss_wholesale_cost) as min_wholesale_cost, max(ss_wholesale_cost) as max_wholesale_cost, avg(ss_wholesale_cost) as avg_wholesale_cost FROM store_sales WHERE ss_item_sk > 4000 AND ss_item_sk <= 5000 GROUP BY ss_item_sk, ss_ticket_number"
     val rows = runSql(sql)
     assert(rows.size == 5)
   }
 
   test("Query 9") {
-    val sql = "select ss_item_sk, count(ss_customer_sk) as count_ss_customer_sk from store_sales where ss_item_sk > 4000 and ss_item_sk <= 5000 group by ss_item_sk"
+    val sql = "SELECT ss_item_sk, count(ss_customer_sk) as count_ss_customer_sk FROM store_sales WHERE ss_item_sk > 4000 AND ss_item_sk <= 5000 GROUP BY ss_item_sk"
     val rows = runSql(sql)
     assert(rows.size == 5)
   }
 
   test("Query 10") {
-    val sql = "select count(*) from store_sales where ss_net_profit < 100"
+    val sql = "SELECT count(*) FROM store_sales WHERE ss_net_profit < 100"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 74)
   }
 
   test("Query 11") {
-    val sql = "select count(*) from store_sales where ss_coupon_amt < 50 and ss_ext_discount_amt < 50 and ss_net_paid < 50 and ss_net_paid_inc_tax < 50"
+    val sql = "SELECT count(*) FROM store_sales WHERE ss_coupon_amt < 50 AND ss_ext_discount_amt < 50 AND ss_net_paid < 50 AND ss_net_paid_inc_tax < 50"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 6)
   }
 
   test("Query 12") {
-    val sql = "select count(distinct ss_customer_sk) as count_distinct_customer from store_sales"
+    val sql = "SELECT count(distinct ss_customer_sk) as count_distinct_customer FROM store_sales"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 8)
   }
 
   test("Query 13") {
-    val sql = "select * from store_sales limit 100"
+    val sql = "SELECT * FROM store_sales limit 100"
     val rows = runSql(sql)
     assert(rows.size == 100)
   }
 
   test("Query 14") {
-    val sql = "select ss_customer_sk, count(*) from store_sales where ss_item_sk >= 4000 and ss_item_sk <= 5000 group by ss_customer_sk"
+    val sql = "SELECT ss_customer_sk, count(*) FROM store_sales WHERE ss_item_sk >= 4000 AND ss_item_sk <= 5000 GROUP BY ss_customer_sk"
     val rows = runSql(sql)
     assert(rows.size == 5)
   }
 
   test("Query 15") {
-    val sql = "select count(ss_customer_sk) as count_customer from store_sales where ss_customer_sk IN (1,25,50,75,100)"
+    val sql = "SELECT count(ss_customer_sk) as count_customer FROM store_sales WHERE ss_customer_sk IN (1,25,50,75,100)"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 0)
   }
 
   test("Query 16") {
-    val sql = "select count(ss_customer_sk) as count_customer from store_sales where ss_customer_sk < 100 and ss_quantity < 5"
+    val sql = "SELECT count(ss_customer_sk) as count_customer FROM store_sales WHERE ss_customer_sk < 100 AND ss_quantity < 5"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 2)
   }
 
   test("Query 17") {
-    val sql = "select count(ss_customer_sk) as count_customer from store_sales where ss_customer_sk > 100"
+    val sql = "SELECT count(ss_customer_sk) as count_customer FROM store_sales WHERE ss_customer_sk > 100"
     val rows = runSql(sql)
     assert(rows(0).get(0) == 83)
   }
 
   test("Query 18") {
-    val sql = "select ss_item_sk, ss_ticket_number from store_sales where (ss_item_sk = 186 and ss_ticket_number > 0)"
+    val sql = "SELECT ss_item_sk, ss_ticket_number FROM store_sales WHERE (ss_item_sk = 186 AND ss_ticket_number > 0)"
     val rows = runSql(sql)
     assert(rows.size == 1)
   }

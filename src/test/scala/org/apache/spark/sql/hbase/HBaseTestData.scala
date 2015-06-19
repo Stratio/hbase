@@ -108,18 +108,18 @@ class HBaseTestData extends HBaseIntegrationTestBase {
     }
 
     if (TestHbase.catalog.checkLogicalTableExist(stagingTableName)) {
-      val dropSql = s"drop table $stagingTableName"
+      val dropSql = s"DROP TABLE $stagingTableName"
       runSql(dropSql)
     }
 
     if (TestHbase.catalog.checkLogicalTableExist(tableName)) {
-      val dropSql = s"drop table $tableName"
+      val dropSql = s"DROP TABLE $tableName"
       runSql(dropSql)
     }
 
     val (stagingSql, tabSql) =
-      ( s"""CREATE TABLE $stagingTableName(strcol STRING, bytecol String, shortcol String, intcol String,
-            longcol string, floatcol string, doublecol string, PRIMARY KEY(doublecol, strcol, intcol))
+      ( s"""CREATE TABLE $stagingTableName(strcol STRING, bytecol STRING, shortcol STRING, intcol STRING,
+            longcol STRING, floatcol STRING, doublecol STRING, PRIMARY KEY(doublecol, strcol, intcol))
             MAPPED BY ($hbaseStagingTable, COLS=[bytecol=cf1.hbytecol,
             shortcol=cf1.hshortcol, longcol=cf2.hlongcol, floatcol=cf2.hfloatcol])"""
         .stripMargin

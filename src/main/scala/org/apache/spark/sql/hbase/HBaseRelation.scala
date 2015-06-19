@@ -241,22 +241,24 @@ private[hbase] case class HBaseRelation(
   private[hbase] def generateRange(partition: HBasePartition, pred: Expression,
                                    index: Int): PartitionRange[_] = {
     def getData(dt: NativeType,
-                buffer: ListBuffer[HBaseRawType],
-                aBuffer: ArrayBuffer[Byte],
                 bound: Option[HBaseRawType]): Option[Any] = {
-      if (bound.isEmpty) None
-      else {
-        val (start, length) = HBaseKVHelper.decodingRawKeyColumns(bound.get, keyColumns)(index)
-        Some(DataTypeUtils.bytesToData(bound.get, start, length, dt).asInstanceOf[dt.JvmType])
+      if (bound.isEmpty) {
+        None
+      } else {
+        /**
+         * the partition start/end could be incomplete byte array, so we need to make it
+         * a complete key first
+         */
+        val finalRowKey = getFinalKey(bound)
+        val (start, length) = HBaseKVHelper.decodingRawKeyColumns(finalRowKey, keyColumns)(index)
+        Some(DataTypeUtils.bytesToData(finalRowKey, start, length, dt).asInstanceOf[dt.JvmType])
       }
     }
 
     val dt = keyColumns(index).dataType.asInstanceOf[NativeType]
     val isLastKeyIndex = index == (keyColumns.size - 1)
-    val buffer = ListBuffer[HBaseRawType]()
-    val aBuffer = ArrayBuffer[Byte]()
-    val start = getData(dt, buffer, aBuffer, partition.start)
-    val end = getData(dt, buffer, aBuffer, partition.end)
+    val start = getData(dt, partition.start)
+    val end = getData(dt, partition.end)
     val startInclusive = start.nonEmpty
     val endInclusive = end.nonEmpty && !isLastKeyIndex
     new PartitionRange(start, startInclusive, end, endInclusive, partition.index, dt, pred)
@@ -272,11 +274,9 @@ private[hbase] case class HBaseRelation(
     val ret = ArrayBuffer[HBaseRawType]()
 
     // Since the size of byteKeys will be 1 if there is only one partition in the table,
-    // we need to omit the that null element.
-    if (!(byteKeys.length == 1 && byteKeys(0).length == 0)) {
-      for (byteKey <- byteKeys) {
-        ret += byteKey
-      }
+    // we need to omit that null element.
+    for (byteKey <- byteKeys if !(byteKeys.length == 1 && byteKeys(0).length == 0)) {
+      ret += byteKey
     }
 
     ret
@@ -733,6 +733,9 @@ private[hbase] case class HBaseRelation(
         case _ => new Scan
       }
     }
+
+    // set fetch size
+    scan.setCaching(scannerFetchSize)
 
     // add Family to SCAN from projections
     addColumnFamiliesToScan(scan, filters, otherFilters, pushdownPreds, projectionList)

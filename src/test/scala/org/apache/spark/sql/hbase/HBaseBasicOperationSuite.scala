@@ -18,9 +18,8 @@
 package org.apache.spark.sql.hbase
 
 /**
- * Test insert / query against the table created by HBaseMainTest
+ * Test insert / query against the table
  */
-
 class HBaseBasicOperationSuite extends HBaseSplitTestData {
   import org.apache.spark.sql.hbase.TestHbase._
 
