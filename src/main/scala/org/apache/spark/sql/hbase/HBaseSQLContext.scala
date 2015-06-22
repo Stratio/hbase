@@ -33,7 +33,7 @@ class HBaseSQLContext(sc: SparkContext) extends SQLContext(sc) {
   @transient
   override protected[sql] val sqlParser = {
     val fallback = new HBaseSQLParser
-    new SparkSQLParser(fallback(_))
+    new SparkSQLParser(fallback.parse(_))
   }
 
   HBaseConfiguration.merge(

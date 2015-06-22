@@ -41,5 +41,5 @@ case class HBaseSQLTableScan(
     RangePartitioning(ordering.toSeq, relation.partitions.size)
   }
 
-  override def execute() = result
+  override protected def doExecute(): RDD[Row] = result
 }

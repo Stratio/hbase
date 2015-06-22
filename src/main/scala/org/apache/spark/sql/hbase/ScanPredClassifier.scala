@@ -105,7 +105,7 @@ class ScanPredClassifier(relation: HBaseRelation) {
              * Java throws casting exception while doing col2 in (1, 2, 3), if col2 data type
              * if ByteType and 1, 2, 3 is Integer.
               */
-            DataTypeUtils.getBinaryComparator(BytesUtils.create(dataType), Literal(item, dataType))
+            DataTypeUtils.getBinaryComparator(BytesUtils.create(dataType), Literal.create(item, dataType))
           } catch {
             case e: Exception => errorOccurred = true
           }

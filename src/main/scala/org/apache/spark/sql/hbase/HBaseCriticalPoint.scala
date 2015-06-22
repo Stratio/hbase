@@ -38,7 +38,7 @@ object CriticalPointType extends Enumeration {
  * @param dt the runtime data type of this critical point
  * @tparam T the data type parameter of this critical point
  */
-case class CriticalPoint[T](value: T, ctype: CriticalPointType.CriticalPointType, dt: NativeType) {
+case class CriticalPoint[T](value: T, ctype: CriticalPointType.CriticalPointType, dt: AtomicType) {
   override def hashCode() = value.hashCode()
 
   override def equals(other: Any): Boolean = other match {
@@ -66,7 +66,7 @@ case class CriticalPoint[T](value: T, ctype: CriticalPointType.CriticalPointType
  */
 private[hbase] class CriticalPointRange[T](start: Option[T], startInclusive: Boolean,
                                            end: Option[T], endInclusive: Boolean, dimIndex: Int,
-                                           dt: NativeType, var pred: Expression)
+                                           dt: AtomicType, var pred: Expression)
   extends Range[T](start, startInclusive, end, endInclusive, dt) {
   var nextDimCriticalPointRanges: Seq[CriticalPointRange[_]] = Nil
 
@@ -75,7 +75,7 @@ private[hbase] class CriticalPointRange[T](start: Option[T], startInclusive: Boo
    * @param prefix the buffer to build prefix on all leading dimensions
    * @return a list of Multiple dimensional critical point ranges
    */
-  private[hbase] def flatten(prefix: ArrayBuffer[(Any, NativeType)])
+  private[hbase] def flatten(prefix: ArrayBuffer[(Any, AtomicType)])
   : Seq[MDCriticalPointRange[_]] = {
     if (nextDimCriticalPointRanges.isEmpty) {
       // Leaf node
@@ -107,9 +107,9 @@ private[hbase] class CriticalPointRange[T](start: Option[T], startInclusive: Boo
  * @param dt the data type of the range of the last dimension
  * @tparam T the type parameter of the range of the last dimension
  */
-private[hbase] case class MDCriticalPointRange[T](prefix: Seq[(Any, NativeType)],
+private[hbase] case class MDCriticalPointRange[T](prefix: Seq[(Any, AtomicType)],
                                                   lastRange: CriticalPointRange[T],
-                                                  dt: NativeType) {
+                                                  dt: AtomicType) {
   /**
    * Compare this range's start/end with the partition's end/start
    * @param startOrEnd TRUE if compare this start with the partition's end;
@@ -146,14 +146,14 @@ private[hbase] case class MDCriticalPointRange[T](prefix: Seq[(Any, NativeType)]
         var i = 0
         for (zippedPair <- zippedPairs
              if zippedPair._1._2.ordering.equiv(
-               zippedPair._1._1.asInstanceOf[zippedPair._1._2.JvmType],
-               zippedPair._2.asInstanceOf[zippedPair._1._2.JvmType])) {
+               zippedPair._1._1.asInstanceOf[zippedPair._1._2.InternalType],
+               zippedPair._2.asInstanceOf[zippedPair._1._2.InternalType])) {
           i = i + 1
         }
         if (i < zippedPairs.size) {
           val ((prefixPoint, dt), pPoint) = zippedPairs(i)
-          if (dt.ordering.gt(prefixPoint.asInstanceOf[dt.JvmType],
-            pPoint.asInstanceOf[dt.JvmType])) {
+          if (dt.ordering.gt(prefixPoint.asInstanceOf[dt.InternalType],
+            pPoint.asInstanceOf[dt.InternalType])) {
             1
           }
           else {
@@ -167,12 +167,12 @@ private[hbase] case class MDCriticalPointRange[T](prefix: Seq[(Any, NativeType)]
               1
             }
             case (_, pend) =>
-              if (dt.ordering.gt(comparePoint.asInstanceOf[dt.JvmType],
-                pend.asInstanceOf[dt.JvmType])) {
+              if (dt.ordering.gt(comparePoint.asInstanceOf[dt.InternalType],
+                pend.asInstanceOf[dt.InternalType])) {
                 1
               }
-              else if (dt.ordering.lt(comparePoint.asInstanceOf[dt.JvmType],
-                pend.asInstanceOf[dt.JvmType])) {
+              else if (dt.ordering.lt(comparePoint.asInstanceOf[dt.InternalType],
+                pend.asInstanceOf[dt.InternalType])) {
                 -1
               } else {
                 if (comparePointInclusive && comparePPointInclusive) {
@@ -219,7 +219,7 @@ object RangeCriticalPoint {
   : Seq[CriticalPoint[T]] = {
     if (key.references.subsetOf(expression.references)) {
       val pointSet = mutable.Set[CriticalPoint[T]]()
-      val dt: NativeType = key.dataType.asInstanceOf[NativeType]
+      val dt: AtomicType = key.dataType.asInstanceOf[AtomicType]
       def checkAndAdd(value: Any, ct: CriticalPointType.CriticalPointType): Unit = {
         val cp = CriticalPoint[T](value.asInstanceOf[T], ct, dt)
         if (!pointSet.add(cp)) {
@@ -279,7 +279,7 @@ object RangeCriticalPoint {
           a
       }
       pointSet.toSeq.sortWith((a: CriticalPoint[T], b: CriticalPoint[T])
-      => dt.ordering.lt(a.value.asInstanceOf[dt.JvmType], b.value.asInstanceOf[dt.JvmType]))
+      => dt.ordering.lt(a.value.asInstanceOf[dt.InternalType], b.value.asInstanceOf[dt.InternalType]))
     } else Nil
   }
 
@@ -293,7 +293,7 @@ object RangeCriticalPoint {
    * @return a list of generated critical point ranges
    */
   private[hbase] def generateCriticalPointRange[T](cps: Seq[CriticalPoint[T]],
-                                                   dimIndex: Int, dt: NativeType)
+                                                   dimIndex: Int, dt: AtomicType)
   : Seq[CriticalPointRange[T]] = {
     if (cps.isEmpty) Nil
     else {
@@ -439,14 +439,14 @@ object RangeCriticalPoint {
   : Seq[CriticalPointRange[_]] = {
     val keyDim = relation.partitionKeys(dimIndex)
     val boundPred = BindReferences.bindReference(predExpr, predRefs)
-    val dt: NativeType = keyDim.dataType.asInstanceOf[NativeType]
+    val dt: AtomicType = keyDim.dataType.asInstanceOf[AtomicType]
     // Step 1.1
-    val criticalPoints: Seq[CriticalPoint[dt.JvmType]]
+    val criticalPoints: Seq[CriticalPoint[dt.InternalType]]
     = collect(predExpr, relation.partitionKeys(dimIndex))
     if (criticalPoints.isEmpty) Nil
     else {
-      val cpRanges: Seq[CriticalPointRange[dt.JvmType]]
-      = generateCriticalPointRange[dt.JvmType](criticalPoints, dimIndex, dt)
+      val cpRanges: Seq[CriticalPointRange[dt.InternalType]]
+      = generateCriticalPointRange[dt.InternalType](criticalPoints, dimIndex, dt)
       // Step 1.2
       val keyIndex = predRefs.indexWhere(_.exprId == relation.partitionKeys(dimIndex).exprId)
       val qualifiedCPRanges = cpRanges.filter(cpr => {
@@ -712,7 +712,7 @@ object RangeCriticalPoint {
 
       // Step 2
       val expandedCPRs: Seq[MDCriticalPointRange[_]] =
-        cprs.flatMap(_.flatten(new ArrayBuffer[(Any, NativeType)](relation.dimSize)))
+        cprs.flatMap(_.flatten(new ArrayBuffer[(Any, AtomicType)](relation.dimSize)))
 
       // Step 3
       prunePartitions(expandedCPRs, pred, relation.partitions, relation.partitionKeys.size)

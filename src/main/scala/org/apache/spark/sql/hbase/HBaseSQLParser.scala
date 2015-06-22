@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.plans.logical._
 import org.apache.spark.sql.execution.RunnableCommand
 import org.apache.spark.sql.hbase.execution._
 import org.apache.spark.util.Utils
+import org.apache.spark.sql.catalyst._
 
 object HBaseSQLParser {
   def getKeywords: Seq[String] = {
@@ -36,6 +37,10 @@ object HBaseSQLParser {
 }
 
 class HBaseSQLParser extends SqlParser {
+
+  protected val STRING = Keyword("STRING")
+  protected val INT = Keyword("INT")
+  protected val DOUBLE = Keyword("DOUBLE")
 
   protected val ADD = Keyword("ADD")
   protected val ALTER = Keyword("ALTER")
@@ -76,7 +81,7 @@ class HBaseSQLParser extends SqlParser {
 
   override protected lazy val insert: Parser[LogicalPlan] =
     (INSERT ~> INTO ~> relation ~ select <~ opt(";") ^^ {
-      case r ~ s => InsertIntoTable(r, Map[String, Option[String]](), s, overwrite = false)
+      case r ~ s => InsertIntoTable(r, Map[String, Option[String]](), s, overwrite = false, ifNotExists =false )
     }
       |
       INSERT ~> INTO ~> ident ~ (VALUES ~> "(" ~> values <~ ")") ^^ {

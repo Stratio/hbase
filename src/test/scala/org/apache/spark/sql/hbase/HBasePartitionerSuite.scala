@@ -109,21 +109,21 @@ class HBasePartitionerSuite extends HBaseIntegrationTestBase {
     val relation = HBaseRelation(tableName, namespace, hbaseTableName, allColumns)(hbaseContext)
 
     val lll = relation.output.find(_.name == "column2").get
-    val llr = Literal(8, IntegerType)
+    val llr = Literal.create(8, IntegerType)
     val ll = EqualTo(lll, llr)
 
     val lrl = lll
-    val lrr = Literal(2048, IntegerType)
+    val lrr = Literal.create(2048, IntegerType)
     val lr = EqualTo(lrl, lrr)
 
     val l = Or(ll, lr)
 
     val rll = relation.output.find(_.name == "column1").get
-    val rlr = Literal(32, IntegerType)
+    val rlr = Literal.create(32, IntegerType)
     val rl = EqualTo(rll, rlr)
 
     val rrl = rll
-    val rrr = Literal(1024, IntegerType)
+    val rrr = Literal.create(1024, IntegerType)
     val rr = EqualTo(rrl, rrr)
 
     val r = Or(rl, rr)
@@ -136,7 +136,7 @@ class HBasePartitionerSuite extends HBaseIntegrationTestBase {
     assert(result.size == 2)
 
     val expandedCPRs: Seq[MDCriticalPointRange[_]] =
-      result.flatMap(_.flatten(new ArrayBuffer[(Any, NativeType)](relation.dimSize)))
+      result.flatMap(_.flatten(new ArrayBuffer[(Any, AtomicType)](relation.dimSize)))
 
     assert(expandedCPRs.size == 4)
 
@@ -235,11 +235,11 @@ class HBasePartitionerSuite extends HBaseIntegrationTestBase {
     val relation = HBaseRelation(tableName, namespace, hbaseTableName, allColumns)(hbaseContext)
 
     val lll = relation.output.find(_.name == "column1").get
-    val llr = Literal(8, IntegerType)
+    val llr = Literal.create(8, IntegerType)
     val ll = EqualTo(lll, llr)
 
     val lrl = lll
-    val lrr = Literal(8, IntegerType)
+    val lrr = Literal.create(8, IntegerType)
     val lr = GreaterThan(lrl, lrr)
 
     val l = Or(ll, lr)
@@ -268,11 +268,11 @@ class HBasePartitionerSuite extends HBaseIntegrationTestBase {
     val relation = HBaseRelation(tableName, namespace, hbaseTableName, allColumns)(hbaseContext)
 
     val lll = relation.output.find(_.name == "column1").get
-    val llr = Literal(8, IntegerType)
+    val llr = Literal.create(8, IntegerType)
     val ll = LessThan(lll, llr)
 
     val lrl = lll
-    val lrr = Literal(8, IntegerType)
+    val lrr = Literal.create(8, IntegerType)
     val lr = GreaterThan(lrl, lrr)
 
     val l = And(ll, lr)

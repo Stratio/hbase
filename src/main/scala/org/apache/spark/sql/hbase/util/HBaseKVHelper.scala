@@ -68,7 +68,7 @@ object HBaseKVHelper {
             index = pos + 1
             (offset, pos - offset)
           } else {
-            val length = c.dataType.asInstanceOf[NativeType].defaultSize
+            val length = c.dataType.asInstanceOf[AtomicType].defaultSize
             index += length
             (offset, length)
           }

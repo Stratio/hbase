@@ -97,7 +97,7 @@ object PartialPredicateOperations {
           if (evaluatedValue == null) {
             val evaluatedList = list.map(e=>e.partialReduce(input, schema) match {
               case (null, e: Expression) => e
-              case (d, _)  => Literal(d, e.dataType)
+              case (d, _)  => Literal.create(d, e.dataType)
             })
             (null, In(expr, evaluatedList))
           } else {
@@ -271,7 +271,7 @@ object PartialPredicateOperations {
       }
 
       dataType1 match {
-        case nativeType: NativeType =>
+        case nativeType: AtomicType =>
           val pdt = RangeType.primitiveToPODataTypeMap.getOrElse(nativeType, null)
           if (pdt == null) {
             sys.error(s"Type $i does not have corresponding partial ordered type")

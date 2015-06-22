@@ -25,7 +25,8 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.codegen.GeneratePredicate
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.hbase.util.{BytesUtils, HBaseKVHelper, DataTypeUtils}
-import org.apache.spark.sql.types.NativeType
+import org.apache.spark.sql.types.AtomicType
+
 import org.apache.spark.{InterruptibleIterator, Logging, Partition, TaskContext}
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
@@ -69,9 +70,9 @@ class HBaseSQLReaderRDD(
 
     val otherFilter: (Row) => Boolean = if (otherFilters.isDefined) {
       if (codegenEnabled) {
-        GeneratePredicate(otherFilters.get, finalOutput)
+        GeneratePredicate.generate(otherFilters.get, finalOutput)
       } else {
-        InterpretedPredicate(otherFilters.get, finalOutput)
+        InterpretedPredicate.create(otherFilters.get, finalOutput)
       }
     } else null
 
@@ -123,7 +124,7 @@ class HBaseSQLReaderRDD(
    */
   private def constructRowKey(cpr: MDCriticalPointRange[_], isStart: Boolean): HBaseRawType = {
     val prefix = cpr.prefix
-    val head: Seq[(HBaseRawType, NativeType)] = prefix.map {
+    val head: Seq[(HBaseRawType, AtomicType)] = prefix.map {
       case (itemValue, itemType) =>
         (DataTypeUtils.dataToBytes(itemValue, itemType), itemType)
     }
@@ -131,7 +132,7 @@ class HBaseSQLReaderRDD(
     val key = if (isStart) cpr.lastRange.start else cpr.lastRange.end
     val keyType = cpr.lastRange.dt
     val list = if (key.isDefined) {
-      val tail: (HBaseRawType, NativeType) = {
+      val tail: (HBaseRawType, AtomicType) = {
         (DataTypeUtils.dataToBytes(key.get, keyType), keyType)
       }
       head :+ tail
@@ -154,7 +155,7 @@ class HBaseSQLReaderRDD(
     val predicates = partition.computePredicate(relation)
     val expandedCPRs: Seq[MDCriticalPointRange[_]] =
       RangeCriticalPoint.generateCriticalPointRanges(relation, predicates).
-        flatMap(_.flatten(new ArrayBuffer[(Any, NativeType)](relation.dimSize)))
+        flatMap(_.flatten(new ArrayBuffer[(Any, AtomicType)](relation.dimSize)))
 
     if (expandedCPRs.isEmpty) {
       val (filters, otherFilters, pushdownPreds) = relation.buildPushdownFilterList(predicates)

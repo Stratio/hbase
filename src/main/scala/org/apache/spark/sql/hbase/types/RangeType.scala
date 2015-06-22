@@ -30,11 +30,11 @@ class Range[T](val start: Option[T], // None for open ends
                val startInclusive: Boolean,
                val end: Option[T], // None for open ends
                val endInclusive: Boolean,
-               val dt: NativeType) extends Serializable {
+               val dt: AtomicType) extends Serializable {
   require(dt != null && !(start.isDefined && end.isDefined &&
     ((dt.ordering.eq(start.get, end.get) &&
       (!startInclusive || !endInclusive)) ||
-      dt.ordering.gt(start.get.asInstanceOf[dt.JvmType], end.get.asInstanceOf[dt.JvmType]))),
+      dt.ordering.gt(start.get.asInstanceOf[dt.InternalType], end.get.asInstanceOf[dt.InternalType]))),
     "Inappropriate range parameters")
   @transient lazy val isPoint: Boolean = start.isDefined && end.isDefined &&
     startInclusive && endInclusive && start.get.equals(end.get)
@@ -53,7 +53,7 @@ class Range[T](val start: Option[T], // None for open ends
  */
 class PartitionRange[T](start: Option[T], startInclusive: Boolean,
                         end: Option[T], endInclusive: Boolean,
-                        val id: Int, dt: NativeType, var pred: Expression)
+                        val id: Int, dt: AtomicType, var pred: Expression)
   extends Range[T](start, startInclusive, end, endInclusive, dt)
 
 private[hbase] class RangeType[T] extends PartialOrderingDataType {
@@ -65,7 +65,7 @@ private[hbase] class RangeType[T] extends PartialOrderingDataType {
   
   private[spark] override def asNullable: RangeType[T] = this
 
-  def toPartiallyOrderingDataType(s: Any, dt: NativeType): Any = s match {
+  def toPartiallyOrderingDataType(s: Any, dt: AtomicType): Any = s match {
     case b: Boolean => new Range[Boolean](Some(b), true, Some(b), true, BooleanType)
     case b: Byte => new Range[Byte](Some(b), true, Some(b), true, ByteType)
     case d: Double => new Range[Double](Some(d), true, Some(d), true, DoubleType)
@@ -86,12 +86,12 @@ private[hbase] class RangeType[T] extends PartialOrderingDataType {
     def tryCompare(a: JvmType, b: JvmType): Option[Int] = {
       val aRange = a.asInstanceOf[Range[T]]
       val aStartInclusive = aRange.startInclusive
-      val aStart = aRange.start.getOrElse(null).asInstanceOf[aRange.dt.JvmType]
-      val aEnd = aRange.end.getOrElse(null).asInstanceOf[aRange.dt.JvmType]
+      val aStart = aRange.start.getOrElse(null).asInstanceOf[aRange.dt.InternalType]
+      val aEnd = aRange.end.getOrElse(null).asInstanceOf[aRange.dt.InternalType]
       val aEndInclusive = aRange.endInclusive
       val bRange = b.asInstanceOf[Range[T]]
-      val bStart = bRange.start.getOrElse(null).asInstanceOf[aRange.dt.JvmType]
-      val bEnd = bRange.end.getOrElse(null).asInstanceOf[aRange.dt.JvmType]
+      val bStart = bRange.start.getOrElse(null).asInstanceOf[aRange.dt.InternalType]
+      val bEnd = bRange.end.getOrElse(null).asInstanceOf[aRange.dt.InternalType]
       val bStartInclusive = bRange.startInclusive
       val bEndInclusive = bRange.endInclusive
 
@@ -142,24 +142,24 @@ private[hbase] class RangeType[T] extends PartialOrderingDataType {
         (aStartInclusive, aEndInclusive, bStartInclusive, bEndInclusive) match {
           // [(aStart, aEnd] compare to [bStart, bEnd)]
           case (_, true, true, _) =>
-            if (aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.JvmType],
-              bStart.asInstanceOf[aRange.dt.JvmType])) {
+            if (aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.InternalType],
+              bStart.asInstanceOf[aRange.dt.InternalType])) {
               true
             } else {
               false
             }
           // [(aStart, aEnd] compare to (bStart, bEnd)]
           case (_, true, false, _) =>
-            if (bStart != null && aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.JvmType],
-              bStart.asInstanceOf[aRange.dt.JvmType])) {
+            if (bStart != null && aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.InternalType],
+              bStart.asInstanceOf[aRange.dt.InternalType])) {
               true
             } else {
               false
             }
           // [(aStart, aEnd) compare to [bStart, bEnd)]
           case (_, false, true, _) =>
-            if (aEnd != null && aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.JvmType],
-              bStart.asInstanceOf[aRange.dt.JvmType])) {
+            if (aEnd != null && aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.InternalType],
+              bStart.asInstanceOf[aRange.dt.InternalType])) {
               true
             } else {
               false
@@ -167,8 +167,8 @@ private[hbase] class RangeType[T] extends PartialOrderingDataType {
           // [(aStart, aEnd) compare to (bStart, bEnd)]
           case (_, false, false, _) =>
             if (aEnd != null && bStart != null &&
-              aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.JvmType],
-                bStart.asInstanceOf[aRange.dt.JvmType])) {
+              aRange.dt.ordering.lteq(aEnd.asInstanceOf[aRange.dt.InternalType],
+                bStart.asInstanceOf[aRange.dt.InternalType])) {
               true
             } else {
               false
@@ -202,7 +202,7 @@ object RangeType {
 
   object TimestampRangeType extends RangeType[Timestamp]
 
-  val primitiveToPODataTypeMap: HashMap[NativeType, PartialOrderingDataType] =
+  val primitiveToPODataTypeMap: HashMap[AtomicType, PartialOrderingDataType] =
     HashMap(
       BooleanType -> BooleanRangeType,
       ByteType -> ByteRangeType,

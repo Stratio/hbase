@@ -31,7 +31,7 @@ class BytesUtilsSuite extends FunSuite with BeforeAndAfterAll with Logging {
     val result = s.map(i => (i, BytesUtils.create(IntegerType).toBytes(i)))
       .sortWith((f, s) =>
       HBaseBytesType.ordering.gt(
-        f._2.asInstanceOf[HBaseBytesType.JvmType], s._2.asInstanceOf[HBaseBytesType.JvmType]))
+        f._2.asInstanceOf[HBaseBytesType.InternalType], s._2.asInstanceOf[HBaseBytesType.InternalType]))
     assert(result.map(a => a._1).toSeq == s.sorted.reverse)
   }
 

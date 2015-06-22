@@ -22,7 +22,7 @@ import scala.reflect.runtime.universe.TypeTag
 
 abstract class PartialOrderingDataType extends DataType {
   private[sql] type JvmType
-  def toPartiallyOrderingDataType(s: Any, dt: NativeType): Any
+  def toPartiallyOrderingDataType(s: Any, dt: AtomicType): Any
   @transient private[sql] val tag: TypeTag[JvmType]
   private[sql] val partialOrdering: PartialOrdering[JvmType]
 }
