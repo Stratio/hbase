@@ -534,7 +534,7 @@
       <artifactId>junit-interface</artifactId>
       <version>0.10</version>
       <scope>test</scope>
-    </dependency>
+     </dependency>
 
     <!--
     This dependency has been added to provided scope as it is needed for executing build
@@ -547,6 +547,7 @@
       <version>2.3.7</version>
       <scope>provided</scope>
     </dependency>
+
   </dependencies>
 
   <!-- TODO Replace this profile with HBase version profiles. -->
@@ -982,6 +983,9 @@
     </profile>
     <profile>
       <id>hadoop-2.4</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
       <properties>
         <hadoop.version>2.4.0</hadoop.version>
         <protobuf.version>2.5.0</protobuf.version>
