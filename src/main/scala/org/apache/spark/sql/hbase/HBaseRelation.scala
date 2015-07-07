@@ -26,7 +26,9 @@ import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SQLContext
+import org.apache.spark.sql.catalyst.analysis.SimpleCatalog
 import org.apache.spark.sql.catalyst.expressions._
+import org.apache.spark.sql.hbase.HBaseSQLConf._
 import org.apache.spark.sql.hbase.catalyst.expressions.PartialPredicateOperations.partialPredicateReducer
 import org.apache.spark.sql.hbase.catalyst.NotPusher
 import org.apache.spark.sql.hbase.types.Range
@@ -43,7 +45,8 @@ class HBaseSource extends RelationProvider {
   override def createRelation(
                                sqlContext: SQLContext,
                                parameters: Map[String, String]): BaseRelation = {
-    val catalog = sqlContext.catalog.asInstanceOf[HBaseCatalog]
+    val sqlcatalog = sqlContext.catalog
+    val catalog =new  HBaseCatalog(sqlContext,sqlContext.sparkContext.hadoopConfiguration)
 
     val tableName = parameters("tableName")
     val rawNamespace = parameters("namespace")
@@ -234,7 +237,8 @@ private[hbase] case class HBaseRelation(
 
   @transient private[hbase] lazy val dimSize = keyColumns.size
 
-  val scannerFetchSize = context.conf.asInstanceOf[HBaseSQLConf].scannerFetchSize
+  //val scannerFetchSize = context.conf.asInstanceOf[HBaseSQLConf].scannerFetchSize
+  val scannerFetchSize = context.conf.getConf(SCANNER_FETCH_SIZE, "1000").toInt
 
   private[hbase] def generateRange(partition: HBasePartition, pred: Expression,
                                    index: Int): Range[_] = {
@@ -710,7 +714,7 @@ private[hbase] case class HBaseRelation(
     new HBaseSQLReaderRDD(
       this,
       context.conf.codegenEnabled,
-      context.conf.asInstanceOf[HBaseSQLConf].useCustomFilter,
+      context.conf.getConf("spark.sql.hbase.customfilter", "true").toBoolean,
       requiredColumns,
       deploySuccessfully,
       filterPredicate, // PartitionPred : Option[Expression]

@@ -30,7 +30,7 @@ import org.apache.log4j.Logger
 import org.apache.spark.Logging
 import org.apache.spark.sql.SQLContext
 import org.apache.spark.sql.catalyst.{SimpleCatalystConf, CatalystConf}
-import org.apache.spark.sql.catalyst.analysis.{Catalog, OverrideCatalog}
+import org.apache.spark.sql.catalyst.analysis.{SimpleCatalog, Catalog, OverrideCatalog}
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Subquery}
 import org.apache.spark.sql.hbase.HBaseCatalog._
 import org.apache.spark.sql.types._
@@ -74,7 +74,7 @@ case class NonKeyColumn(sqlName: String, dataType: DataType, family: String, qua
 
 private[hbase] class HBaseCatalog(@transient hbaseContext: SQLContext,
                                   @transient configuration: Configuration)
-  extends Catalog with Logging with Serializable {
+  extends SimpleCatalog(SimpleCatalystConf(true)) with Logging with Serializable {
 
   lazy val logger = Logger.getLogger(getClass.getName)
 
@@ -173,9 +173,9 @@ private[hbase] class HBaseCatalog(@transient hbaseContext: SQLContext,
                   allColumns: Seq[AbstractColumn], splitKeys: Array[Array[Byte]]): HBaseRelation = {
     val metadataTable = getMetadataTable
 
-    if (checkLogicalTableExist(tableName, metadataTable)) {
+   /* if (checkLogicalTableExist(tableName, metadataTable)) {
       throw new Exception(s"The logical table: $tableName already exists")
-    }
+    }*/
 
     // create a new hbase table for the user if not exist
     val nonKeyColumns = allColumns.filter(_.isInstanceOf[NonKeyColumn])
@@ -194,22 +194,23 @@ private[hbase] class HBaseCatalog(@transient hbaseContext: SQLContext,
 
     metadataTable.setAutoFlushTo(false)
 
-    val get = new Get(Bytes.toBytes(tableName))
+   /*val get = new Get(Bytes.toBytes(tableName))
     val result = if (metadataTable.exists(get)) {
       throw new Exception(s"row key $tableName exists")
-    } else {
+    } else {*/
+
       val hbaseRelation = HBaseRelation(tableName, hbaseNamespace, hbaseTableName,
         allColumns, deploySuccessfully)(hbaseContext)
       hbaseRelation.setConfig(configuration)
 
-      writeObjectToTable(hbaseRelation, metadataTable)
+ //     writeObjectToTable(hbaseRelation, metadataTable)
 
       relationMapCache.put(processTableName(tableName), hbaseRelation)
       hbaseRelation
-    }
+    //}
 
     metadataTable.close()
-    result
+    hbaseRelation
   }
 
   def alterTableDropNonKey(tableName: String, columnName: String) = {
